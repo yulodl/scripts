@@ -3,7 +3,7 @@
 //ffmpeg -i wm.mp4 -f lavfi -i color=c=0xECECEC:s=324x44 -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=478:0:shortest=1' color.mp4
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 const len = process.argv.length;
 if (len < 3) {
   console.error('media files please');
@@ -21,7 +21,7 @@ const getSizeAndPositionX = (width, height) => {
     positionX: `${Math.round((width - coverWidth) / 2)}`
   };
 };
-const mediaFiles = process.argv.slice(2);
+const mediaFiles = process.argv.slice(2).filter(mf => !/-handled/.test(mf));
 const handleMedia = (mfIndex) => {
   if (mfIndex == mediaFiles.length) {
     console.log('全部视频均已去水印！');
@@ -54,12 +54,12 @@ const handleMedia = (mfIndex) => {
     }
     const sPX = getSizeAndPositionX(matches[0], matches[1]);
     //console.log(`stderr: ${stderr}`);
-    exec(`ffmpeg -i ${mf} -f lavfi -i color=c=0xECECEC:s=${sPX.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sPX.positionX}:0:shortest=1' ${mfHandled}`, (error, stdout, stderr) => {
+    exec(`ffmpeg -loglevel quiet -i ${mf} -f lavfi -i color=c=0xECECEC:s=${sPX.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sPX.positionX}:0:shortest=1' ${mfHandled}`, {timeout: 2*60*1000}, (error, stdout, stderr) => {
       if (error) {
-        console.error(`exec error: ${error}`);
-        return;
+        console.error(`超时请核查：${mf}`);
+      } else {
+        console.log(`已处理：${mf}`);
       }
-      console.log(`已处理：${mf}`);
       handleMedia(++mfIndex);
     });
   });
