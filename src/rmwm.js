@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { exec, spawn } from 'child_process';
+import { imagemagick } from 'color-extractor';
 const len = process.argv.length;
 if (len < 3) {
   console.error('media files please');
@@ -42,7 +43,7 @@ const handleMedia = (mfIndex) => {
   }
   exec(`mediainfo -f ${mf} | grep  -E '^Width.*\\d+$|^Height.*\\d+$'`, (error, stdout, stderr) => {
     if (error) {
-      console.error(`exec error: ${error}`);
+      console.error(`读取视频信息出错: ${error}`);
       return;
     }
     const matches = stdout.match(/\d+/g);
@@ -54,13 +55,31 @@ const handleMedia = (mfIndex) => {
     }
     const sPX = getSizeAndPositionX(matches[0], matches[1]);
     //console.log(`stderr: ${stderr}`);
-    exec(`ffmpeg -loglevel quiet -i ${mf} -f lavfi -i color=c=0xECECEC:s=${sPX.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sPX.positionX}:0:shortest=1' ${mfHandled}`, {timeout: 2*60*1000}, (error, stdout, stderr) => {
+    exec(`ffmpeg -loglevel quiet -ss 1 -i ${mf} -vframes 1 -q:v 2 ${mf}.jpg`, {timeout: 5*1000}, (error, stdout, stderr) => {
       if (error) {
-        console.error(`超时请核查：${mf}`);
-      } else {
-        console.log(`已处理：${mf}`);
+        console.error(`视频截图出错: ${error}`);
+        return;
       }
-      handleMedia(++mfIndex);
+      imagemagick.getColor(`${mf}.jpg`, {
+        delta: 1,
+        reduceGradients: false,
+        neglectYellowSkin: false,
+        favorSaturated: false
+      }).then(function(result) {
+        //console.log(result)
+        fs.unlink(`${mf}.jpg`, (err) => {});
+        const overlayColor = result[0].color;
+        exec(`ffmpeg -loglevel quiet -i ${mf} -f lavfi -i color=c=0x${overlayColor}:s=${sPX.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sPX.positionX}:0:shortest=1' ${mfHandled}`, {timeout: 2*60*1000}, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`超时请核查：${mf}`);
+          } else {
+            console.log(`已处理：${mf}`);
+          }
+          handleMedia(++mfIndex);
+        });
+      }).catch(function(e) {
+        console.error(e.stack);
+      });
     });
   });
 };
