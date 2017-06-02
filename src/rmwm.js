@@ -1,4 +1,4 @@
-//remove watermark
+//remove watermark, use like: SP='134x30 714:452' node ~/dev/learning/scripts/bin/rmwm.js *.mp4
 //ffmpeg -i wm.mp4 -i wmcover.png -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=478:0' nowm.mp4
 //ffmpeg -i wm.mp4 -f lavfi -i color=c=0xECECEC:s=324x44 -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=478:0:shortest=1' color.mp4
 import fs from 'fs';
@@ -14,13 +14,40 @@ const config = {
   percentX: 0.26,
   percentY: 0.06
 };
-const getSizeAndPositionX = (width, height) => {
+const getSizeAndPosition = (width, height) => {
   const coverWidth = 2 * Math.round(width * config.percentX / 2);
   const coverHeight = 2 * Math.round(height * config.percentY / 2);
   return {
     size: `${coverWidth}x${coverHeight}`,
-    positionX: `${Math.round((width - coverWidth) / 2)}`
+    position: `${Math.round((width - coverWidth) / 2)}:0`
   };
+};
+const hanleSP = (mf, cb) => {
+  const envSP = process.env.SP;
+  if (envSP) { //指定区域
+    const spArr = envSP.split(' ');
+    cb && cb({
+      size: spArr[0],
+      position: spArr[1],
+    });
+  } else {
+    exec(`mediainfo -f ${mf} | grep  -E '^Width.*\\d+$|^Height.*\\d+$'`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`读取视频信息出错: ${error}`);
+        return;
+      }
+      const matches = stdout.match(/\d+/g);
+      //console.log(matches);
+      if (!matches[0] || !matches[1]) {
+        console.log(`读取视频宽高失败：${mf}`);
+        handleMedia(++mfIndex);
+        return;
+      }
+      const sp = getSizeAndPosition(matches[0], matches[1]);
+      //console.log(`stderr: ${stderr}`);
+      cb && cb(sp);
+    });
+  }
 };
 const mediaFiles = process.argv.slice(2).filter(mf => !/-handled/.test(mf));
 const handleMedia = (mfIndex) => {
@@ -41,35 +68,22 @@ const handleMedia = (mfIndex) => {
     handleMedia(++mfIndex);
     return;
   }
-  exec(`mediainfo -f ${mf} | grep  -E '^Width.*\\d+$|^Height.*\\d+$'`, (error, stdout, stderr) => {
+  exec(`ffmpeg -loglevel quiet -ss 1 -i ${mf} -vframes 1 -q:v 2 ${mf}.jpg`, {timeout: 5*1000}, (error, stdout, stderr) => {
     if (error) {
-      console.error(`读取视频信息出错: ${error}`);
+      console.error(`视频截图出错: ${error}`);
       return;
     }
-    const matches = stdout.match(/\d+/g);
-    //console.log(matches);
-    if (!matches[0] || !matches[1]) {
-      console.log(`读取视频宽高失败：${mf}`);
-      handleMedia(++mfIndex);
-      return;
-    }
-    const sPX = getSizeAndPositionX(matches[0], matches[1]);
-    //console.log(`stderr: ${stderr}`);
-    exec(`ffmpeg -loglevel quiet -ss 1 -i ${mf} -vframes 1 -q:v 2 ${mf}.jpg`, {timeout: 5*1000}, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`视频截图出错: ${error}`);
-        return;
-      }
-      imagemagick.getColor(`${mf}.jpg`, {
-        delta: 1,
-        reduceGradients: false,
-        neglectYellowSkin: false,
-        favorSaturated: false
-      }).then(function(result) {
-        //console.log(result)
-        fs.unlink(`${mf}.jpg`, (err) => {});
-        const overlayColor = result[0].color;
-        exec(`ffmpeg -loglevel quiet -i ${mf} -f lavfi -i color=c=0x${overlayColor}:s=${sPX.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sPX.positionX}:0:shortest=1' ${mfHandled}`, {timeout: 2*60*1000}, (error, stdout, stderr) => {
+    imagemagick.getColor(`${mf}.jpg`, {
+      delta: 1,
+      reduceGradients: false,
+      neglectYellowSkin: false,
+      favorSaturated: false
+    }).then(function(result) {
+      //console.log(result)
+      fs.unlink(`${mf}.jpg`, (err) => {});
+      const overlayColor = result[0].color;
+      hanleSP(mf, (sp) => {
+        exec(`ffmpeg -loglevel quiet -i ${mf} -f lavfi -i color=c=0x${overlayColor}:s=${sp.size} -vcodec h264 -acodec copy -profile:v main -tune stillimage -filter_complex 'overlay=${sp.position}:shortest=1' ${mfHandled}`, {timeout: 2*60*1000}, (error, stdout, stderr) => {
           if (error) {
             console.error(`超时请核查：${mf}`);
           } else {
@@ -77,9 +91,9 @@ const handleMedia = (mfIndex) => {
           }
           handleMedia(++mfIndex);
         });
-      }).catch(function(e) {
-        console.error(e.stack);
       });
+    }).catch(function(e) {
+      console.error(e.stack);
     });
   });
 };
