@@ -24,8 +24,14 @@ let g:syntastic_javascript_checkers = ['eslint']
 
 map <leader>fr :call FEReviewers() <cr>
 function! FEReviewers()
+    " let feReviewers='xhgao, weisun, xinzhong, xymo, wenxiujiang, zhenkunliu, huayizhang, zhijiezhang, Amelia278, chenghengdu, hongweihu, Mengpeng, wangkai'
     let feReviewers='#WEB_REVIEWERS'
     let failed = append(line('.'), feReviewers)
+endfunction
+map <leader>br :call APIReviewers() <cr>
+function! APIReviewers()
+    let beReviewers='xhgao, wenxiujiang, guiyuanzhang, ylti, fanxin, SRCGT'
+    let failed = append(line('.'), beReviewers)
 endfunction
 map <leader>fc :call FileComment(1) <cr>
 function! FileComment(force)
@@ -58,9 +64,9 @@ function! FileComment(force)
 endfunction
 map <leader>fj :call FormatJson() <cr>
 function! FormatJson()
-    let content = substitute(join(getline(1, '$'), ''), "\"", "'", "g")
-    echo content
-    execute "!/usr/local/bin/node -p \"JSON.stringify(" . content . ", null, 2)\" > " . expand("%:p")
+    let tmp = '/tmp/vim-json.js'
+    let path = expand("%p")
+    execute "!echo 'module.exports=' > ". tmp ." && cat " . path .  " >> ". tmp . " && node -p \"JSON.stringify(require('". tmp ."'), null, 2)\" > " . path
 endfunction
 autocmd BufNewFile,BufReadPost *.js,*.ts,*.vue call FileComment(0)
 autocmd BufWritePre,FileWritePre *.js,*.ts ks|call LastMod()|'s
