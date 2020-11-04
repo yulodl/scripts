@@ -68,8 +68,8 @@ function! FormatJson()
     let path = expand("%p")
     execute "!echo 'module.exports=' > ". tmp ." && cat " . path .  " >> ". tmp . " && node -p \"JSON.stringify(require('". tmp ."'), null, 2)\" > " . path
 endfunction
-autocmd BufNewFile,BufReadPost *.js,*.ts,*.vue call FileComment(0)
-autocmd BufWritePre,FileWritePre *.js,*.ts ks|call LastMod()|'s
+autocmd BufNewFile,BufReadPost *.js,*.ts,*.vue,*.scss call FileComment(0)
+autocmd BufWritePre,FileWritePre *.js,*.ts,*.scss ks|call LastMod()|'s
 function! LastMod()
   if line("$") > 20
     let l = 20
@@ -159,3 +159,5 @@ map <leader>qa :qa <cr>
 
 map <leader>r :! find . -type f -name '*.js' -exec sed -i '' -e $'s///g' {} +
 " :! find . -type f -name '*.js' -exec sed -i '' -e $'s/@babel\/polyfill/core-js\/stable\';\\\nimport \'regenerator-runtime\/runtime/g' {} +
+" map <leader>d :execute "!node " . expand("%p") <cr>
+map <leader>d :execute "!cat " . expand("%:p") . " \| node --input-type=module" <cr>
