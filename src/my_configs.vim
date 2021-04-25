@@ -6,6 +6,8 @@ let NERDTreeShowHidden=1
 let g:NERDTreeWinPos="left"
 let g:jsx_ext_required=0
 let g:ctrlp_custom_ignore = 'node_modules\|^\.DS_Store\|^\.git\|^\.coffee\|build'
+let g:javascript_plugin_jsdoc = 1
+let g:jsdoc_lehre_path = '/usr/local/lib/node_modules/lehre/bin/lehre'
 
 set nu
 set colorcolumn=120
@@ -15,6 +17,7 @@ autocmd Filetype java setlocal ts=2 sw=2 expandtab
 autocmd Filetype php setlocal ts=2 sw=2 expandtab
 autocmd Filetype json setlocal ts=2 sw=2 expandtab
 autocmd FileType vue syntax sync fromstart
+autocmd FileType vue setl foldmethod=indent
 au BufRead,BufNewFile *.tpl set filetype=html
 
 let g:syntastic_java_checkers=['javac']
@@ -22,16 +25,21 @@ let g:syntastic_java_javac_config_file_enabled = 1
 let g:syntastic_javascript_checkers = ['eslint']
 " let g:typescript_indent_disable = 1
 
-map <leader>fr :call FEReviewers() <cr>
-function! FEReviewers()
-    " let feReviewers='xhgao, weisun, xinzhong, xymo, wenxiujiang, zhenkunliu, huayizhang, zhijiezhang, Amelia278, chenghengdu, hongweihu, Mengpeng, wangkai'
-    let feReviewers='#WEB_REVIEWERS'
-    let failed = append(line('.'), feReviewers)
-endfunction
 map <leader>br :call APIReviewers() <cr>
 function! APIReviewers()
     let beReviewers='xhgao, wenxiujiang, guiyuanzhang, ylti, fanxin, SRCGT'
     let failed = append(line('.'), beReviewers)
+endfunction
+map <leader>fj :call FormatJson() <cr>
+function! FormatJson()
+    let tmp = '/tmp/vim-json.js'
+    let path = expand("%p")
+    execute "!echo 'module.exports=' > ". tmp ." && cat " . path .  " >> ". tmp . " && node -p \"JSON.stringify(require('". tmp ."'), null, 2)\" > " . path
+endfunction
+map <leader>fr :call FEReviewers() <cr>
+function! FEReviewers()
+    let feReviewers='#WEB_REVIEWERS'
+    let failed = append(line('.'), feReviewers)
 endfunction
 map <leader>fc :call FileComment(1) <cr>
 function! FileComment(force)
@@ -46,11 +54,6 @@ function! FileComment(force)
             call add (fc, '<!-- @desc ' . fileName . ' -->')
             call add (fc, '')
         else
-            " let fc = ['/**']
-            " call add (fc, ' * @author xiaodongyu')
-            " call add (fc, ' * @date ' . strftime("%Y/%-m/%-d-%p%-I:%M"))
-            " call add (fc, ' * @file ' . fileName)
-            " call add (fc, ' */')
             let time = strftime("%Y-%m-%d %H:%M:%S")
             let fc = ['/*']
             call add (fc, ' * @Author: xiaodongyu')
@@ -62,12 +65,6 @@ function! FileComment(force)
         let failed = append(0, fc)
     endif
 endfunction
-map <leader>fj :call FormatJson() <cr>
-function! FormatJson()
-    let tmp = '/tmp/vim-json.js'
-    let path = expand("%p")
-    execute "!echo 'module.exports=' > ". tmp ." && cat " . path .  " >> ". tmp . " && node -p \"JSON.stringify(require('". tmp ."'), null, 2)\" > " . path
-endfunction
 autocmd BufNewFile,BufReadPost *.js,*.ts,*.vue,*.scss call FileComment(0)
 autocmd BufWritePre,FileWritePre *.js,*.ts,*.scss ks|call LastMod()|'s
 function! LastMod()
@@ -76,8 +73,8 @@ function! LastMod()
   else
     let l = line("$")
   endif
-  exe "1," . l . "g/Last Modified by: /s/Last Modified by: .*/Last Modified by: xiaodongyu"
-  exe "1," . l . "g/Last Modified time: /s/Last Modified time: .*/Last Modified time: " .
+  exe "silent 1," . l . "g/Last Modified by: /s/Last Modified by: .*/Last Modified by: xiaodongyu"
+  exe "silent 1," . l . "g/Last Modified time: /s/Last Modified time: .*/Last Modified time: " .
   \ strftime("%Y-%m-%d %H:%M:%S")
 endfunction
 function! SetlineAndCursor(lnum, content, cursorLnum, cursorCnum) 
@@ -87,10 +84,10 @@ function! SetlineAndCursor(lnum, content, cursorLnum, cursorCnum)
     call cursor(cursorLnum, cursorCnum)
 endfunction
 map <leader>fm :call SetlineAndCursor(1, '[OA FE] ', '', '') <cr>
-map <leader>ao :call SetlineAndCursor(1, '[yqd_web_admin][海外后台] ', '', '') <cr>
 map <leader>vc :call SetlineAndCursor(1, '[vue-spa][海外催收] ', '', '') <cr>
 map <leader>va :call SetlineAndCursor(1, '[vue-spa][海外后台] ', '', '') <cr>
 map <leader>bm :call SetlineAndCursor(1, '[yqg_oa] ', '', '') <cr>
+map <leader>d :execute "!cat " . expand("%:p") . " \| node --input-type=module" <cr>
 let g:lightline = {
 \     'inactive': {
 \       'left': [ [ 'relativepath' ] ]
@@ -160,4 +157,3 @@ map <leader>qa :qa <cr>
 map <leader>r :! find . -type f -name '*.js' -exec sed -i '' -e $'s///g' {} +
 " :! find . -type f -name '*.js' -exec sed -i '' -e $'s/@babel\/polyfill/core-js\/stable\';\\\nimport \'regenerator-runtime\/runtime/g' {} +
 " map <leader>d :execute "!node " . expand("%p") <cr>
-map <leader>d :execute "!cat " . expand("%:p") . " \| node --input-type=module" <cr>
