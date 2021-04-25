@@ -433,7 +433,7 @@ map <leader>d :call ExecuteCode() <cr>
 function! ExecuteCode()
     let fullName = expand('%:p')
     let ext = expand('%:e')
-    if (ext =~ 'm?js$')
+    if (ext =~ 'm\?js$')
         execute "!cat " . fullName . " \| node --input-type=module"
     elseif (ext == 'cpp')
         let outName = expand('%:p:r') . ".out"
