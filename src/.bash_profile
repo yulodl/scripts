@@ -146,20 +146,6 @@ weekly() {
 # proxy list
 alias proxy='export all_proxy=socks5://127.0.0.1:1086'
 alias unproxy='unset all_proxy'
-alias aws='ssh -i ~/.ssh/lq.pem ec2-user@52.53.176.119'
 alias setbp='vim ~/.bash_profile'
 alias updatebp='source ~/.bash_profile'
 
-alias jump='ssh 18515663215@jump.yangqianguan.com'
-alias jt='ssh yqg@jump-test.yangqianguan.com'
-alias jto='ssh yqg@54.223.138.134'
-alias jfo='ssh yqg@52.220.220.58'
-
-# complaint code-push: yqgweb@gmail.com Y4$9@rFtRVod
-# umeng: developer@yangqianguan.com  YqgDev2015
-# npm: yqg-owner ywYD129^$B6B
-# npm publish --tag next
-# npm dist-tags
-# npm publish --access=public
-# npm install --unsafe-perm --no-optional
-# docker run -i -d -p 80:80 -p 8081:8081 docker.io/caihuijigood/badjs-docker bash badjs mysql=mysql://root@10.0.9.2:3306/badjs mongodb=mongodb://10.0.9.2:27017/badjs
